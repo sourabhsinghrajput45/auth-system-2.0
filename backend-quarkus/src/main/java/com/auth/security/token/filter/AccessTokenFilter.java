@@ -26,45 +26,54 @@ public class AccessTokenFilter implements ContainerRequestFilter {
     public void filter(ContainerRequestContext requestContext) {
 
         String path = requestContext.getUriInfo().getPath();
+        System.out.println("[FILTER] incoming request path = " + path);
+        System.out.println("[FILTER] method = " + requestContext.getMethod());
 
         // -------------------------------------------------
         // Allow CORS preflight requests
         // -------------------------------------------------
         if ("OPTIONS".equalsIgnoreCase(requestContext.getMethod())) {
+            System.out.println("[FILTER] OPTIONS request → bypass");
             return;
         }
 
         // -------------------------------------------------
         // Allow unauthenticated endpoints
         // -------------------------------------------------
-        if (
-                path.startsWith("auth")
-                || path.startsWith("/auth")
-        ) {
+        if (path.startsWith("auth") || path.startsWith("/auth")) {
+            System.out.println("[FILTER] auth endpoint → bypass");
             return;
         }
 
         // -------------------------------------------------
         // Read access token from HTTP-only cookie
         // -------------------------------------------------
-        Cookie cookie = requestContext
-                .getCookies()
-                .get("accessToken");
+        Cookie cookie = requestContext.getCookies().get("accessToken");
+        System.out.println("[FILTER] cookie present = " + (cookie != null));
 
-        if (cookie == null || cookie.getValue() == null || cookie.getValue().isBlank()) {
+        if (cookie == null) {
+            System.out.println("[FILTER] cookie is NULL → 401");
             abort(requestContext);
             return;
         }
 
+        System.out.println("[FILTER] cookie value length = "
+                + (cookie.getValue() != null ? cookie.getValue().length() : "null"));
+
         AccessToken token;
         try {
             token = accessTokenService.validate(cookie.getValue());
+            System.out.println("[FILTER] token validated successfully");
         } catch (Exception e) {
+            System.out.println("[FILTER] token validation FAILED");
+            e.printStackTrace();
             abort(requestContext);
             return;
         }
 
         User user = token.getUser();
+        System.out.println("[FILTER] user from token = "
+                + (user != null ? user.getEmail() : "null"));
 
         // -------------------------------------------------
         // Attach authenticated user to security context
@@ -75,6 +84,8 @@ public class AccessTokenFilter implements ContainerRequestFilter {
                         requestContext.getSecurityContext()
                 )
         );
+
+        System.out.println("[FILTER] UserSecurityContext ATTACHED");
     }
 
     private void abort(ContainerRequestContext ctx) {
