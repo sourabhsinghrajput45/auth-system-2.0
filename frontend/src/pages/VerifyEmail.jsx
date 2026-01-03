@@ -4,15 +4,13 @@ import { useAuth } from "../context/AuthContext";
 
 /**
  * VerifyEmail page
- * - Shown when user is logged in but email is not verified
- * - Periodically checks backend status
+ * - Shown when user is authenticated but email is not verified
+ * - Polls backend status
+ * - Updates ONLY verification flag (PROD SAFE)
  */
 export default function VerifyEmail() {
   const { setAuth } = useAuth();
   const [checking, setChecking] = useState(false);
-  const [message, setMessage] = useState(
-    "Please verify your email to continue."
-  );
 
   useEffect(() => {
     let active = true;
@@ -21,21 +19,23 @@ export default function VerifyEmail() {
       setChecking(true);
       try {
         const data = await getAuthStatus();
-
         if (!active) return;
 
-        if (data.emailVerified) {
-          setAuth({
+        // ✅ Only flip verification flag
+        if (data.authenticated && data.emailVerified) {
+          setAuth((prev) => ({
+            ...prev,
             loading: false,
-            authenticated: true,
             emailVerified: true,
-            email: data.email ?? null,
-          });
+          }));
         }
       } finally {
         if (active) setChecking(false);
       }
     }
+
+    // initial check
+    checkVerification();
 
     const interval = setInterval(checkVerification, 5000);
 
@@ -47,13 +47,13 @@ export default function VerifyEmail() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="max-w-md w-full bg-white p-8 rounded-lg shadow-md text-center">
-        <h1 className="text-xl font-semibold mb-4">
+      <div className="max-w-md w-full bg-white p-8 rounded-lg shadow-md text-center space-y-4">
+        <h1 className="text-xl font-semibold">
           Email verification required
         </h1>
 
-        <p className="text-gray-600 mb-6">
-          {message}
+        <p className="text-gray-600">
+          Please verify your email to continue.
         </p>
 
         <p className="text-sm text-gray-500">
