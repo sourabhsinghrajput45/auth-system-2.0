@@ -1,5 +1,8 @@
 package com.auth.user.api;
 
+import java.time.Duration;
+import java.time.Instant;
+
 import com.auth.user.entity.User;
 import com.auth.user.service.UserService;
 import com.auth.user.verification.entity.EmailVerificationToken;
@@ -130,16 +133,19 @@ public class AuthResource {
         AccessToken accessToken = accessTokenService.issueToken(user);
 
         // Set HTTP-only cookie
-        NewCookie cookie = new NewCookie(
-                "accessToken",
-                accessToken.getToken(),
-                "/",
-                null,
-                null,
-                (int) accessToken.getExpiresAt().getEpochSecond(),
-                true,
-                true
-        );
+int maxAge = (int) Duration.between(
+        Instant.now(),
+        accessToken.getExpiresAt()
+).getSeconds();
+
+NewCookie cookie = new NewCookie.Builder("accessToken")
+        .value(accessToken.getToken())
+        .path("/")
+        .secure(true)
+        .httpOnly(true)
+        .sameSite(NewCookie.SameSite.NONE)   //  REQUIRED
+        .maxAge(maxAge)
+        .build();
 
         // IMPORTANT:
         // Login is allowed even if email is NOT verified
@@ -197,16 +203,15 @@ public class AuthResource {
     public Response logout() {
 
         // Expire cookie
-        NewCookie expiredCookie = new NewCookie(
-                "accessToken",
-                "",
-                "/",
-                null,
-                null,
-                0,
-                true,
-                true
-        );
+NewCookie expiredCookie = new NewCookie.Builder("accessToken")
+        .value("")
+        .path("/")
+        .secure(true)
+        .httpOnly(true)
+        .sameSite(NewCookie.SameSite.NONE)   // REQUIRED
+        .maxAge(0)
+        .build();
+
 
         return Response.ok(
                 Map.of("message", "Logged out successfully")
