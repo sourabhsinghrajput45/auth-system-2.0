@@ -63,9 +63,16 @@ export async function getMe() {
  * Logout user
  * Clears cookie on backend
  */
-export async function logout() {
-  await fetch(`${API_BASE_URL}/auth/logout`, {
-    method: "POST",
-    credentials: "include",
-  });
+/**
+ * Frontend-only logout
+ * - Force-expire accessToken cookie
+ * - No backend call
+ */
+export function logout() {
+  // Expire cookie (must match name + path)
+  document.cookie =
+    "accessToken=; Path=/; Max-Age=0; Secure; SameSite=None";
+
+  return Promise.resolve();
 }
+

@@ -4,8 +4,8 @@ import { useAuth } from "../context/AuthContext";
 
 /**
  * Dashboard
- * - Accessible only to authenticated & verified users
- * - Confirms identity with backend (/me)
+ * - Accessible only to authenticated users
+ * - Shows email verification status
  */
 export default function Dashboard() {
   const { setAuth } = useAuth();
@@ -23,7 +23,6 @@ export default function Dashboard() {
         if (!active) return;
 
         if (!data || !data.authenticated) {
-          // Session expired or invalid
           setAuth({
             loading: false,
             authenticated: false,
@@ -43,7 +42,6 @@ export default function Dashboard() {
     }
 
     loadUser();
-
     return () => {
       active = false;
     };
@@ -75,16 +73,45 @@ export default function Dashboard() {
     );
   }
 
+  const isVerified = user.emailVerified;
+
   return (
     <div className="min-h-screen bg-gray-100 p-8">
-      <div className="max-w-3xl mx-auto bg-white p-6 rounded-lg shadow">
-        <h1 className="text-2xl font-semibold mb-2">
+      <div className="max-w-3xl mx-auto bg-white p-6 rounded-lg shadow space-y-6">
+        
+        <h1 className="text-2xl font-semibold">
           Welcome
         </h1>
 
-        <p className="text-gray-700 mb-6">
+        <p className="text-gray-700">
           Logged in as <strong>{user.email}</strong>
         </p>
+
+        {/* Verification Status */}
+        <div
+          className={`p-4 rounded-md border ${
+            isVerified
+              ? "bg-green-50 border-green-300 text-green-800"
+              : "bg-yellow-50 border-yellow-300 text-yellow-800"
+          }`}
+        >
+          {isVerified ? (
+            <>
+              <p className="font-medium">Email verified</p>
+              <p className="text-sm mt-1">
+                Your email is verified. All features are accessible.
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="font-medium">Email not verified</p>
+              <p className="text-sm mt-1">
+                You need to verify your email to access all features.
+                Please check your inbox for the verification link.
+              </p>
+            </>
+          )}
+        </div>
 
         <button
           onClick={handleLogout}
