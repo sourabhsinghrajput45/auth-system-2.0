@@ -25,7 +25,7 @@ public class AccessTokenFilter implements ContainerRequestFilter {
     @Override
     public void filter(ContainerRequestContext requestContext) {
 
-        String path = requestContext.getUriInfo().getPath();
+        String path = requestContext.getUriInfo().getRequestUri().getPath();
         System.out.println("[FILTER] incoming request path = " + path);
         System.out.println("[FILTER] method = " + requestContext.getMethod());
 
