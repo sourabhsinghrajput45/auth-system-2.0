@@ -6,9 +6,11 @@ import { useAuth } from "../context/AuthContext";
  * Dashboard
  * - Accessible only to authenticated users
  * - Shows email verification status
+ * - Syncs backend state into global auth context (PROD SAFE)
  */
 export default function Dashboard() {
   const { setAuth } = useAuth();
+
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(null);
   const [error, setError] = useState("");
@@ -19,9 +21,9 @@ export default function Dashboard() {
     async function loadUser() {
       try {
         const data = await getMe();
-
         if (!active) return;
 
+        // Session expired or invalid
         if (!data || !data.authenticated) {
           setAuth({
             loading: false,
@@ -32,7 +34,16 @@ export default function Dashboard() {
           return;
         }
 
+        // ✅ Update local UI state
         setUser(data);
+
+        // ✅ CRITICAL: Sync backend truth into global auth state
+        setAuth({
+          loading: false,
+          authenticated: true,
+          emailVerified: Boolean(data.emailVerified),
+          email: data.email ?? null,
+        });
       } catch {
         if (!active) return;
         setError("Failed to load user information");
@@ -48,14 +59,20 @@ export default function Dashboard() {
   }, [setAuth]);
 
   async function handleLogout() {
-    await logout();
-    setAuth({
-      loading: false,
-      authenticated: false,
-      emailVerified: false,
-      email: null,
-    });
+    try {
+      await logout();
+    } finally {
+      // Frontend state reset (cookie clearing is backend concern)
+      setAuth({
+        loading: false,
+        authenticated: false,
+        emailVerified: false,
+        email: null,
+      });
+    }
   }
+
+  // ---------------- UI STATES ----------------
 
   if (loading) {
     return (
@@ -73,21 +90,18 @@ export default function Dashboard() {
     );
   }
 
-  const isVerified = user.emailVerified;
+  const isVerified = Boolean(user?.emailVerified);
 
   return (
     <div className="min-h-screen bg-gray-100 p-8">
       <div className="max-w-3xl mx-auto bg-white p-6 rounded-lg shadow space-y-6">
-        
-        <h1 className="text-2xl font-semibold">
-          Welcome
-        </h1>
+        <h1 className="text-2xl font-semibold">Welcome</h1>
 
         <p className="text-gray-700">
           Logged in as <strong>{user.email}</strong>
         </p>
 
-        {/* Verification Status */}
+        {/* Email verification status */}
         <div
           className={`p-4 rounded-md border ${
             isVerified
