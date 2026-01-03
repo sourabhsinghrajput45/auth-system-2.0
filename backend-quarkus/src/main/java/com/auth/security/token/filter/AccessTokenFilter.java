@@ -25,7 +25,7 @@ public class AccessTokenFilter implements ContainerRequestFilter {
 
     /**
      * Explicit whitelist of public endpoints.
-     * This avoids fragile string prefix logic and is PROD-safe.
+     * Must match normalized paths.
      */
     private static final Set<String> PUBLIC_PATHS = Set.of(
             "/auth/login",
@@ -38,7 +38,11 @@ public class AccessTokenFilter implements ContainerRequestFilter {
     @Override
     public void filter(ContainerRequestContext requestContext) {
 
-        String path = requestContext.getUriInfo().getPath();
+        // -------------------------------------------------
+        // NORMALIZE PATH (CRITICAL FIX)
+        // -------------------------------------------------
+        String rawPath = requestContext.getUriInfo().getPath();
+        String path = rawPath.startsWith("/") ? rawPath : "/" + rawPath;
         String method = requestContext.getMethod();
 
         System.out.println("[FILTER] path = " + path + ", method = " + method);
