@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getMe, logout } from "../api/auth";
+import { getAuthStatus, logout } from "../api/auth";
 import { useAuth } from "../context/AuthContext";
 
 export default function Dashboard() {
@@ -14,7 +14,7 @@ export default function Dashboard() {
 
     async function loadUser() {
       try {
-        const data = await getMe();
+        const data = await getAuthStatus(); // Changed from getMe()
         if (!active) return;
 
         if (!data || data.authenticated !== true) {
@@ -36,8 +36,11 @@ export default function Dashboard() {
           email: data.email,
           emailVerified: data.emailVerified === true,
         });
-      } catch {
-        if (active) setError("Failed to load user information");
+      } catch (err) {
+        if (active) {
+          console.error("Failed to load user:", err);
+          setError("Failed to load user information");
+        }
       } finally {
         if (active) setLoading(false);
       }
@@ -75,7 +78,7 @@ export default function Dashboard() {
     );
   }
 
-  const isVerified = user.emailVerified === true;
+  const isVerified = user?.emailVerified === true; // Added optional chaining
 
   return (
     <div className="min-h-screen bg-gray-100 p-8">
@@ -83,7 +86,7 @@ export default function Dashboard() {
         <h1 className="text-2xl font-semibold">Welcome</h1>
 
         <p className="text-gray-700">
-          Logged in as <strong>{user.email}</strong>
+          Logged in as <strong>{user?.email}</strong>
         </p>
 
         <div
