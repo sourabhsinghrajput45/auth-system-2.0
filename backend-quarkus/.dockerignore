@@ -1,0 +1,14 @@
+# Ignore build output
+target/
+
+# Ignore environment files
+.env
+docker.env
+
+# Ignore IDE files
+.idea
+.vscode
+
+# Ignore git
+.git
+.gitignore
