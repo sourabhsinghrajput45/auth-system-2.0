@@ -2,12 +2,6 @@ import { useEffect, useState } from "react";
 import { getMe, logout } from "../api/auth";
 import { useAuth } from "../context/AuthContext";
 
-/**
- * Dashboard
- * - Accessible only to authenticated users
- * - Displays email verification status
- * - DOES NOT mutate AuthContext (PROD SAFE)
- */
 export default function Dashboard() {
   const { setAuth } = useAuth();
 
@@ -24,16 +18,15 @@ export default function Dashboard() {
         if (!active) return;
 
         if (!data || !data.authenticated) {
-          // Session invalid → force logout
           setAuth({
             loading: false,
             authenticated: false,
-            emailVerified: false,
             email: null,
           });
           return;
         }
 
+        // 🔥 SINGLE SOURCE OF TRUTH
         setUser(data);
       } catch {
         if (active) setError("Failed to load user information");
@@ -49,21 +42,18 @@ export default function Dashboard() {
   }, [setAuth]);
 
   function handleLogout() {
-    logout(); // frontend cookie clear only
+    logout();
     setAuth({
       loading: false,
       authenticated: false,
-      emailVerified: false,
       email: null,
     });
   }
 
-  // ---------------- UI STATES ----------------
-
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <span className="text-gray-600">Loading dashboard...</span>
+        Loading dashboard…
       </div>
     );
   }
@@ -76,7 +66,7 @@ export default function Dashboard() {
     );
   }
 
-  const isVerified = Boolean(user.emailVerified);
+  const isVerified = user.emailVerified === true;
 
   return (
     <div className="min-h-screen bg-gray-100 p-8">
@@ -106,7 +96,7 @@ export default function Dashboard() {
               <p className="font-medium">Email not verified</p>
               <p className="text-sm mt-1">
                 Please verify your email.  
-                After verification, log out and log in again to refresh status.
+                Log out and log in again after verification.
               </p>
             </>
           )}
