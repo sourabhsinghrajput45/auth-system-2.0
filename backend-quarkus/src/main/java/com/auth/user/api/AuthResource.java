@@ -201,6 +201,8 @@ NewCookie cookie = new NewCookie.Builder("accessToken")
     @POST
     @Path("/logout")
     public Response logout() {
+        System.out.println("[LOGOUT] NEW CODE EXECUTED");
+
 
         // Expire cookie
 NewCookie expiredCookie = new NewCookie.Builder("accessToken")
