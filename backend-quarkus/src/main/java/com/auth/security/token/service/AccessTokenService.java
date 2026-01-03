@@ -48,32 +48,36 @@ public class AccessTokenService {
     // =====================================================
     // VALIDATE TOKEN (NEW – REQUIRED)
     // =====================================================
-    public AccessToken validate(String tokenValue) {
+@Transactional
+public AccessToken validate(String tokenValue) {
 
-        if (tokenValue == null || tokenValue.isBlank()) {
-            throw new SecurityException("Missing access token");
-        }
-
-        Optional<AccessToken> tokenOpt =
-                tokenRepository.find("token = ?1", tokenValue)
-                        .firstResultOptional();
-
-        if (tokenOpt.isEmpty()) {
-            throw new SecurityException("Invalid access token");
-        }
-
-        AccessToken token = tokenOpt.get();
-
-        if (token.isRevoked()) {
-            throw new SecurityException("Access token revoked");
-        }
-
-        if (token.getExpiresAt().isBefore(Instant.now())) {
-            throw new SecurityException("Access token expired");
-        }
-
-        return token;
+    if (tokenValue == null || tokenValue.isBlank()) {
+        throw new SecurityException("Missing access token");
     }
+
+    Optional<AccessToken> tokenOpt =
+            tokenRepository.find("token = ?1", tokenValue)
+                    .firstResultOptional();
+
+    if (tokenOpt.isEmpty()) {
+        throw new SecurityException("Invalid access token");
+    }
+
+    AccessToken token = tokenOpt.get();
+
+    if (token.isRevoked()) {
+        throw new SecurityException("Access token revoked");
+    }
+
+    if (token.getExpiresAt().isBefore(Instant.now())) {
+        throw new SecurityException("Access token expired");
+    }
+
+    //  Force initialization while session is open
+    token.getUser().getEmail();
+
+    return token;
+}
 
     // =====================================================
     // OPTIONAL: USER EXTRACTION (UTILITY)
