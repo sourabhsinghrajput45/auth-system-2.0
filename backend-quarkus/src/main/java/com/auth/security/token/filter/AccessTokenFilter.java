@@ -5,6 +5,7 @@ import com.auth.security.token.entity.AccessToken;
 import com.auth.security.token.service.AccessTokenService;
 import com.auth.user.entity.User;
 import jakarta.annotation.Priority;
+import jakarta.enterprise.context.control.ActivateRequestContext;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.Priorities;
 import jakarta.ws.rs.container.ContainerRequestContext;
@@ -15,6 +16,7 @@ import jakarta.ws.rs.ext.Provider;
 
 @Provider
 @Priority(Priorities.AUTHENTICATION)
+@ActivateRequestContext
 public class AccessTokenFilter implements ContainerRequestFilter {
 
     @Inject
