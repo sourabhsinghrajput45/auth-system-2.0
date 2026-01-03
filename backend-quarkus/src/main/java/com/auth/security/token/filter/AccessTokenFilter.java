@@ -3,7 +3,6 @@ package com.auth.security.token.filter;
 import com.auth.security.context.UserSecurityContext;
 import com.auth.security.token.entity.AccessToken;
 import com.auth.security.token.service.AccessTokenService;
-import com.auth.user.entity.User;
 import jakarta.annotation.Priority;
 import jakarta.enterprise.context.control.ActivateRequestContext;
 import jakarta.inject.Inject;
@@ -14,6 +13,8 @@ import jakarta.ws.rs.core.Cookie;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.ext.Provider;
 
+import java.util.Set;
+
 @Provider
 @Priority(Priorities.AUTHENTICATION)
 @ActivateRequestContext
@@ -22,26 +23,39 @@ public class AccessTokenFilter implements ContainerRequestFilter {
     @Inject
     AccessTokenService accessTokenService;
 
+    /**
+     * Explicit whitelist of public endpoints.
+     * This avoids fragile string prefix logic and is PROD-safe.
+     */
+    private static final Set<String> PUBLIC_PATHS = Set.of(
+            "/auth/login",
+            "/auth/logout",
+            "/auth/signup",
+            "/auth/status",
+            "/auth/verify"
+    );
+
     @Override
     public void filter(ContainerRequestContext requestContext) {
 
-        String path = requestContext.getUriInfo().getRequestUri().getPath();
-        System.out.println("[FILTER] incoming request path = " + path);
-        System.out.println("[FILTER] method = " + requestContext.getMethod());
+        String path = requestContext.getUriInfo().getPath();
+        String method = requestContext.getMethod();
+
+        System.out.println("[FILTER] path = " + path + ", method = " + method);
 
         // -------------------------------------------------
         // Allow CORS preflight requests
         // -------------------------------------------------
-        if ("OPTIONS".equalsIgnoreCase(requestContext.getMethod())) {
-            System.out.println("[FILTER] OPTIONS request → bypass");
+        if ("OPTIONS".equalsIgnoreCase(method)) {
+            System.out.println("[FILTER] OPTIONS → bypass");
             return;
         }
 
         // -------------------------------------------------
-        // Allow unauthenticated endpoints
+        // Allow explicitly whitelisted public endpoints
         // -------------------------------------------------
-        if (path.startsWith("auth") || path.startsWith("/auth")) {
-            System.out.println("[FILTER] auth endpoint → bypass");
+        if (PUBLIC_PATHS.contains(path)) {
+            System.out.println("[FILTER] public endpoint → bypass");
             return;
         }
 
@@ -49,43 +63,33 @@ public class AccessTokenFilter implements ContainerRequestFilter {
         // Read access token from HTTP-only cookie
         // -------------------------------------------------
         Cookie cookie = requestContext.getCookies().get("accessToken");
-        System.out.println("[FILTER] cookie present = " + (cookie != null));
 
-        if (cookie == null) {
-            System.out.println("[FILTER] cookie is NULL → 401");
+        if (cookie == null || cookie.getValue() == null || cookie.getValue().isBlank()) {
+            System.out.println("[FILTER] missing access token → 401");
             abort(requestContext);
             return;
         }
-
-        System.out.println("[FILTER] cookie value length = "
-                + (cookie.getValue() != null ? cookie.getValue().length() : "null"));
 
         AccessToken token;
         try {
             token = accessTokenService.validate(cookie.getValue());
-            System.out.println("[FILTER] token validated successfully");
         } catch (Exception e) {
-            System.out.println("[FILTER] token validation FAILED");
-            e.printStackTrace();
+            System.out.println("[FILTER] invalid / expired token → 401");
             abort(requestContext);
             return;
         }
-
-        User user = token.getUser();
-        System.out.println("[FILTER] user from token = "
-                + (user != null ? user.getEmail() : "null"));
 
         // -------------------------------------------------
         // Attach authenticated user to security context
         // -------------------------------------------------
         requestContext.setSecurityContext(
                 new UserSecurityContext(
-                        user,
+                        token.getUser(),
                         requestContext.getSecurityContext()
                 )
         );
 
-        System.out.println("[FILTER] UserSecurityContext ATTACHED");
+        System.out.println("[FILTER] authentication successful");
     }
 
     private void abort(ContainerRequestContext ctx) {
