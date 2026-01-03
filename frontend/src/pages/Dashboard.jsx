@@ -17,17 +17,25 @@ export default function Dashboard() {
         const data = await getMe();
         if (!active) return;
 
-        if (!data || !data.authenticated) {
+        if (!data || data.authenticated !== true) {
           setAuth({
             loading: false,
             authenticated: false,
             email: null,
+            emailVerified: null,
           });
           return;
         }
 
-        // 🔥 SINGLE SOURCE OF TRUTH
+        //  SINGLE SOURCE OF TRUTH
         setUser(data);
+
+        setAuth({
+          loading: false,
+          authenticated: true,
+          email: data.email,
+          emailVerified: data.emailVerified === true,
+        });
       } catch {
         if (active) setError("Failed to load user information");
       } finally {
@@ -47,6 +55,7 @@ export default function Dashboard() {
       loading: false,
       authenticated: false,
       email: null,
+      emailVerified: null,
     });
   }
 
