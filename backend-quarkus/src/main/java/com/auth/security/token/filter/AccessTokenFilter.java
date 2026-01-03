@@ -26,6 +26,13 @@ public class AccessTokenFilter implements ContainerRequestFilter {
         String path = requestContext.getUriInfo().getPath();
 
         // -------------------------------------------------
+        // Allow CORS preflight requests
+        // -------------------------------------------------
+        if ("OPTIONS".equalsIgnoreCase(requestContext.getMethod())) {
+            return;
+        }
+
+        // -------------------------------------------------
         // Allow unauthenticated endpoints
         // -------------------------------------------------
         if (
@@ -43,7 +50,7 @@ public class AccessTokenFilter implements ContainerRequestFilter {
                 .get("accessToken");
 
         if (cookie == null || cookie.getValue() == null || cookie.getValue().isBlank()) {
-            abort(requestContext, "Missing access token");
+            abort(requestContext);
             return;
         }
 
@@ -51,7 +58,7 @@ public class AccessTokenFilter implements ContainerRequestFilter {
         try {
             token = accessTokenService.validate(cookie.getValue());
         } catch (Exception e) {
-            abort(requestContext, "Invalid or expired access token");
+            abort(requestContext);
             return;
         }
 
@@ -68,10 +75,10 @@ public class AccessTokenFilter implements ContainerRequestFilter {
         );
     }
 
-    private void abort(ContainerRequestContext ctx, String message) {
+    private void abort(ContainerRequestContext ctx) {
         ctx.abortWith(
                 Response.status(Response.Status.UNAUTHORIZED)
-                        .entity(message)
+                        .entity("{\"authenticated\":false}")
                         .build()
         );
     }
