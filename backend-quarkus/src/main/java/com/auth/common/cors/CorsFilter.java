@@ -14,21 +14,40 @@ public class CorsFilter implements ContainerResponseFilter {
 
         String origin = requestContext.getHeaderString("Origin");
 
-        if (origin == null) return;
+        // No Origin header → not a CORS request
+        if (origin == null) {
+            return;
+        }
 
+        // 🔒 Allow only known frontends
         if (
-                origin.equals("http://localhost:5173") ||
-                        origin.equals("https://YOUR_VERCEL_APP.vercel.app")
+            origin.equals("http://localhost:5173") ||
+            origin.equals("https://auth-system-2-0.vercel.app")
         ) {
-            responseContext.getHeaders().add(
-                    "Access-Control-Allow-Origin", origin);
-            responseContext.getHeaders().add(
-                    "Access-Control-Allow-Credentials", "true");
-            responseContext.getHeaders().add(
-                    "Access-Control-Allow-Headers", "Content-Type");
-            responseContext.getHeaders().add(
+
+            // IMPORTANT: use putSingle (not add)
+            responseContext.getHeaders().putSingle(
+                    "Access-Control-Allow-Origin", origin
+            );
+
+            responseContext.getHeaders().putSingle(
+                    "Access-Control-Allow-Credentials", "true"
+            );
+
+            responseContext.getHeaders().putSingle(
+                    "Access-Control-Allow-Headers",
+                    "Content-Type, Authorization"
+            );
+
+            responseContext.getHeaders().putSingle(
                     "Access-Control-Allow-Methods",
-                    "GET, POST, PUT, DELETE, OPTIONS");
+                    "GET, POST, PUT, DELETE, OPTIONS"
+            );
+
+            // Optional but recommended for proxies / CDNs
+            responseContext.getHeaders().putSingle(
+                    "Vary", "Origin"
+            );
         }
     }
 }
