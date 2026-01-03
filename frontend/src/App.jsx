@@ -3,16 +3,11 @@ import { AuthProvider, useAuth } from "./context/AuthContext";
 
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
-import VerifyEmail from "./pages/VerifyEmail";
 import Dashboard from "./pages/Dashboard";
 
-/**
- * App routes controlled by backend auth state
- */
 function AppRoutes() {
   const { auth } = useAuth();
 
-  // Still determining auth state
   if (auth.loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -23,7 +18,7 @@ function AppRoutes() {
 
   return (
     <Routes>
-      {/* Public routes */}
+      {/* Public */}
       {!auth.authenticated && (
         <>
           <Route path="/login" element={<Login />} />
@@ -32,16 +27,8 @@ function AppRoutes() {
         </>
       )}
 
-      {/* Authenticated but email NOT verified */}
-      {auth.authenticated && !auth.emailVerified && (
-        <>
-          <Route path="/verify-email" element={<VerifyEmail />} />
-          <Route path="*" element={<Navigate to="/verify-email" replace />} />
-        </>
-      )}
-
-      {/* Authenticated + verified */}
-      {auth.authenticated && auth.emailVerified && (
+      {/* Authenticated */}
+      {auth.authenticated && (
         <>
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="*" element={<Navigate to="/dashboard" replace />} />

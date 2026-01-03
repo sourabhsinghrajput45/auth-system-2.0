@@ -5,8 +5,8 @@ import { useAuth } from "../context/AuthContext";
 /**
  * Dashboard
  * - Accessible only to authenticated users
- * - Shows email verification status
- * - Syncs backend state into global auth context (PROD SAFE)
+ * - Displays email verification status
+ * - DOES NOT mutate AuthContext (PROD SAFE)
  */
 export default function Dashboard() {
   const { setAuth } = useAuth();
@@ -23,8 +23,8 @@ export default function Dashboard() {
         const data = await getMe();
         if (!active) return;
 
-        // Session expired or invalid
         if (!data || !data.authenticated) {
+          // Session invalid → force logout
           setAuth({
             loading: false,
             authenticated: false,
@@ -34,19 +34,9 @@ export default function Dashboard() {
           return;
         }
 
-        // ✅ Update local UI state
         setUser(data);
-
-        // ✅ CRITICAL: Sync backend truth into global auth state
-        setAuth({
-          loading: false,
-          authenticated: true,
-          emailVerified: Boolean(data.emailVerified),
-          email: data.email ?? null,
-        });
       } catch {
-        if (!active) return;
-        setError("Failed to load user information");
+        if (active) setError("Failed to load user information");
       } finally {
         if (active) setLoading(false);
       }
@@ -58,18 +48,14 @@ export default function Dashboard() {
     };
   }, [setAuth]);
 
-  async function handleLogout() {
-    try {
-      await logout();
-    } finally {
-      // Frontend state reset (cookie clearing is backend concern)
-      setAuth({
-        loading: false,
-        authenticated: false,
-        emailVerified: false,
-        email: null,
-      });
-    }
+  function handleLogout() {
+    logout(); // frontend cookie clear only
+    setAuth({
+      loading: false,
+      authenticated: false,
+      emailVerified: false,
+      email: null,
+    });
   }
 
   // ---------------- UI STATES ----------------
@@ -90,7 +76,7 @@ export default function Dashboard() {
     );
   }
 
-  const isVerified = Boolean(user?.emailVerified);
+  const isVerified = Boolean(user.emailVerified);
 
   return (
     <div className="min-h-screen bg-gray-100 p-8">
@@ -101,7 +87,6 @@ export default function Dashboard() {
           Logged in as <strong>{user.email}</strong>
         </p>
 
-        {/* Email verification status */}
         <div
           className={`p-4 rounded-md border ${
             isVerified
@@ -120,8 +105,8 @@ export default function Dashboard() {
             <>
               <p className="font-medium">Email not verified</p>
               <p className="text-sm mt-1">
-                You need to verify your email to access all features.
-                Please check your inbox for the verification link.
+                Please verify your email.  
+                After verification, log out and log in again to refresh status.
               </p>
             </>
           )}
